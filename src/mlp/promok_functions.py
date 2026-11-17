@@ -1,3 +1,4 @@
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -5,12 +6,16 @@ import seaborn as sns
 import json
 import copy
 import sys
+
 from pathlib import Path
+from io import BytesIO
+from datetime import datetime
 
 from sklearn.metrics import confusion_matrix, precision_score, recall_score
 from sklearn.metrics import f1_score, accuracy_score, roc_auc_score, ConfusionMatrixDisplay
 
-from datetime import datetime
+from cashia_core.common_tools.storage import get_storage
+from mlp.model_generator_config import get_mlp_resource_key
 
 
 #--- Models labraries
@@ -42,6 +47,25 @@ from sklearn.model_selection import train_test_split
 BY_SIZE = 1
 BY_INDEX = 2
 BY_DATE = 3
+
+
+def _save_figure_to_storage(fig, filename):
+    """Guarda una figura usando el backend configurado (local o S3).
+
+    El formato se infiere de la extensión; por defecto se utiliza PNG.
+    """
+    figures_dir = get_mlp_resource_key("figures_dir")
+    output_key = f"{figures_dir}{filename}"
+    image_format = Path(filename).suffix.lstrip(".").lower() or "png"
+
+    with BytesIO() as buffer:
+        fig.savefig(
+            buffer,
+            format=image_format,
+            dpi=300,
+            bbox_inches="tight",
+        )
+        get_storage().write_bytes(output_key, buffer.getvalue())
 
 class TrainedModelStats:
     """Esta clase almacena las estadísticas del entrenamiento de un modelo
@@ -217,19 +241,13 @@ class ModelsStats:
         disp.plot()
         fig = disp.figure_
 
-        if filename is not None:
-            figures_dir = Path(__file__).resolve().parent / "figures"
-            figures_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            if filename is not None:
+                _save_figure_to_storage(fig, filename)
 
-            fig.savefig(
-                figures_dir / filename,
-                dpi=300,
-                bbox_inches="tight"
-            )
-
-        if show:
-            plt.show()
-        else:
+            if show:
+                plt.show()
+        finally:
             plt.close(fig)
 
         return cm
@@ -496,14 +514,14 @@ def apply_classifier_with_SMOTE(clf, x_train, y_train, preprocessor=None):
 
 
 def plot_threshold_evolution(
-    threshold_list,
-    evol_list,
-    title,
-    xlabel,
-    ylabel,
-    filename=None,
-    show=True
-):
+        threshold_list,
+        evol_list,
+        title,
+        xlabel,
+        ylabel,
+        filename=None,
+        show=True
+    ):
     """Dibuja la evolución del umbral respecto a una variable.
 
     Args:
@@ -523,17 +541,12 @@ def plot_threshold_evolution(
     ax.set_ylabel(ylabel)
     ax.set_xlabel(xlabel)
 
-    if filename is not None:
-        figures_dir = Path(__file__).resolve().parent / "figures"
-        figures_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        if filename is not None:
+            _save_figure_to_storage(fig, filename)
 
-        fig.savefig(
-            figures_dir / filename,
-            dpi=300,
-            bbox_inches="tight"
-        )
-
-    if show:
-        plt.show()
-    else:
+        if show:
+            plt.show()
+    finally:
         plt.close(fig)
+
