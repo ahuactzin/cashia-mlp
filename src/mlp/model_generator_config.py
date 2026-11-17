@@ -2,10 +2,11 @@ MLP_RESOURCE_KEYS = {
     "inflation_table": "mlp/inputs/tablaDeInflacion.csv",
     "conf_dir": "mlp/config/",
     "inputs_dir": "mlp/inputs/",
-    "output_dir": "mlp/output/",
+    "outputs_dir": "mlp/outputs/",
+    "processed_data_dir": "mlp/processed_data/",
     "stats_dir": "mlp/stats/",
     "models_dir": "mlp/models/",
-
+    "figures_dir": "mlp/figures/",
 }
 
 def get_mlp_resource_key(name: str) -> str:
