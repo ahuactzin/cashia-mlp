@@ -17,11 +17,13 @@ from sklearn.preprocessing import StandardScaler, OrdinalEncoder
 from sklearn.compose import make_column_transformer
 
 import mlp.promok_functions as pk
-import mlp.model_generator_config as pkconfig
 from mlp.dataframe_tracker import DataFrameEvolutionTracker
 
 import cashia_core.data_channel.promok_datapipe_func as pkdp
 import cashia_core.data_channel.pm_datapipeline as pmdp
+from cashia_core.common_tools.storage import get_storage
+
+from mlp.model_generator_config import get_mlp_resource_key
 
 from pathlib import Path
 import os
@@ -46,19 +48,17 @@ class ModelGenerator:
         self.models_to_test = models_to_test
         self.feature_engineering = feature_engineering
         self.source_file_name = source_file_name
-        source_fn, _ = os.path.splitext(source_file_name)
-        self.data_file_name = source_fn+self.conf_column+"Processed.csv"
+
 
 
 
     def load_configuration(self, all_stats):
         print('Configuration file: ', self.configuration_file_name)
 
-        all_features = pd.read_excel(
-            BASE_DIR / "config" / self.configuration_file_name,
+        all_features = get_storage().read_excel(
+            f"{get_mlp_resource_key('conf_dir')}{self.configuration_file_name}",
             index_col=0
-            )
-
+)
         features = all_features[all_features[self.conf_column] == 'Sí']
 
         features_to_use = set(features['Característica'].values)
@@ -86,10 +86,15 @@ class ModelGenerator:
     def prepare_data(self, all_stats, features_to_use, monetary_features):
         training_cps = None
         training_cps_aval = None
-        print('Data file: ', self.data_file_name)
 
-        data = pd.read_csv(
-            BASE_DIR / "data" / self.data_file_name,
+        source_fn, _ = os.path.splitext(self.source_file_name)
+        processed_data_file_name = source_fn+self.conf_column+"Processed.csv"
+        
+        print('Data file: ', processed_data_file_name)
+
+
+        data = get_storage().read_csv(
+            f"{get_mlp_resource_key('processed_data_dir')}{processed_data_file_name}",
             parse_dates=["Fecha Inicial"],
             index_col=0,
             dayfirst=True
@@ -143,14 +148,15 @@ class ModelGenerator:
                 pkdp.transform_CP(data,'CP Aval', self.zip_digits)
 
 
-        converter = pmdp.CurrentValueConverter(pkconfig.get_mlp_resource_key("inflation_table"))
+        converter = pmdp.CurrentValueConverter(get_mlp_resource_key("inflation_table"))
 
+        print("Converting monetary features to current value")
         for feature in monetary_features:
             data = converter.to_current_value(data, 'Fecha Inicial', feature)
 
 
         #data.to_excel("ProcessedData2.xlsx")
-
+        print("Converting monetary features to multiple of 500")
         converter_500 = pmdp.MultipleAdjuster(500)
         data = converter_500.adjust_amount(data, 'Monto')
 
@@ -358,7 +364,7 @@ class ModelGenerator:
                 model.data_parameters['CP'] = training_cps
             if 'CP Aval' in features_to_use:
                 model.data_parameters['CP Aval'] = training_cps_aval
-            model.save_with_pickle(path=BASE_DIR / "models")
+            model.save_with_pickle(get_storage())
             plt.close("all")
 
         for model in models_tester.models:
@@ -368,6 +374,7 @@ class ModelGenerator:
 
 
     def export_statistics_and_predictions(self, all_stats, data_tracker, models_tester, preprocessor, y_pred_monetary_test):
+        storage = get_storage()
         con = sqlite3.connect(BASE_DIR / "promocash_stats.db")
         cur = con.cursor()
         cur.executemany("INSERT INTO stats VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", all_stats.values)
@@ -382,23 +389,34 @@ class ModelGenerator:
         format_date_hour = "%Y-%m-%d %H:%M:%S"
         date_and_hour = time_now.strftime(format_date_hour)
 
-        # Imprimir la fecha y hora
-        print("Ended at:", date_and_hour)
-
         con.commit()
         con.close()
 
         df.index.name = 'index'
-        df.to_excel(BASE_DIR / "statistics" / self.stats_file_name)
+        storage.write_excel(f"{get_mlp_resource_key('stats_dir')}{self.stats_file_name}", df)
 
         # Escribir el archivo de data tracking
-        data_tracker.to_dataframe().to_csv("./data/" + self.conf_column + "_data_tracking_train.csv")
+        outputs_dir = get_mlp_resource_key("outputs_dir")
+
+        storage.write_csv(
+            f"{outputs_dir}{self.conf_column}_data_tracking_train.csv",
+            data_tracker.to_dataframe(),
+            index=False
+        )
+
+        # data_tracker.to_dataframe().to_csv("./data/" + self.conf_column + "_data_tracking_train.csv")
 
         test_result = models_tester.x_test.copy()
         test_result["Prediction"] = y_pred_monetary_test
         test_result["Incobrable"] = models_tester.y_test
 
-        test_result.to_csv("./data/TestResult"+self.conf_column+".csv")
+        storage.write_csv(
+            f"{outputs_dir}TestResult_{self.conf_column}.csv",
+            test_result,
+            index=False
+        )
+
+        # test_result.to_csv("./data/TestResult"+self.conf_column+".csv")
 
         preprocessor.fit(models_tester.x_train)
         x_test_processed = preprocessor.transform(models_tester.x_test)
@@ -437,86 +455,6 @@ class ModelGenerator:
 
         return x_test_transformed_df
 
-
-    def _save_group_plot(self, ax, filename):
-        """Guarda la gráfica de agrupación sin mostrar una ventana."""
-        figures_dir = BASE_DIR / "figures"
-        figures_dir.mkdir(parents=True, exist_ok=True)
-
-        fig = ax.get_figure()
-        fig.savefig(figures_dir / filename, dpi=300, bbox_inches="tight")
-        plt.close(fig)
-
-
-    def analyze_score_groups(self, data, models_tester, x_test_transformed_df):
-        max_score_value = data['Score Agt'].max()
-        min_score_value = data['Score Agt'].min()
-        print("Min: ", min_score_value)
-        print("Max: ", max_score_value)
-
-        n_groups = 100
-        bins = np.linspace(min_score_value, max_score_value, n_groups+1)
-        labels = list(range(1,n_groups+1))
-
-
-        # x_test_transformed_df['Group'] = pd.cut(models_tester.x_test['Score Agt'], bins, labels=labels)
-
-        groups = pd.cut(
-            models_tester.x_test['Score Agt'].to_numpy(),  # sin índice
-            bins=bins,
-            labels=labels
-        )
-
-        x_test_transformed_df['Group'] = groups  # groups ya no tiene índice de pandas
-
-
-        intervals = [f"[{bins[i]:.3f}, {bins[i+1]:.3f}]" for i in range(0, n_groups)]
-
-
-        grouped_data_mean = x_test_transformed_df.groupby('Group').mean()
-        grouped_data_mean = grouped_data_mean.reset_index()
-
-        grouped_data_mean = grouped_data_mean.rename(columns={"Prediccion":'% Predicción de incobrables'})
-
-
-        self._save_group_plot(grouped_data_mean.plot.bar(x='Group', y='% Predicción de incobrables',  ylabel="% Predicción de incobrables",), 'score_group_mean.png')
-
-
-        grouped_data_count = x_test_transformed_df.groupby('Group').count()
-        grouped_data_count = grouped_data_count.reset_index()
-        grouped_data_count = grouped_data_count.rename(columns={'Prediccion':'No. de Créditos'})
-
-
-
-
-
-        self._save_group_plot(grouped_data_count.plot.bar(x='Group', y='No. de Créditos',  ylabel="No créditos",), 'score_group_count.png')
-
-        grouped_data_sum = x_test_transformed_df.groupby('Group').sum()
-        grouped_data_sum = grouped_data_sum.reset_index()
-        grouped_data_sum = grouped_data_sum.rename(columns={'Prediccion':'No. Créditos rechazados'})
-
-
-        grouped_data_sum['No. Créditos'] = grouped_data_count['No. de Créditos']
-
-
-        grouped_data_sum['No Créditos aprobados'] = grouped_data_sum['No. Créditos'] - grouped_data_sum['No. Créditos rechazados']
-
-
-        self._save_group_plot(grouped_data_sum[['Group', 'No. Créditos rechazados', 'No Créditos aprobados']].plot.bar(x='Group', stacked=True, rot=0), 'score_group_approved_rejected.png')
-
-        zoom_data = grouped_data_sum[(grouped_data_sum['Group']>=40) & (grouped_data_sum['Group']<=60)]
-
-
-        self._save_group_plot(zoom_data[['Group', 'No. Créditos rechazados', 'No Créditos aprobados']].plot.bar(x='Group', stacked=True, rot=0), 'score_group_zoom.png')
-
-        #training_cps.to_excel("training_cps.xlsx")
-
-
-
-        return grouped_data_mean, grouped_data_count, grouped_data_sum
-
-
     def run(self):
         print(sys.executable)
         print("pandas", pd.__version__)
@@ -530,15 +468,20 @@ class ModelGenerator:
 
         (all_features, features_to_use, categorical_features,
         quantitative_features, monetary_features) = self.load_configuration(all_stats)
+        
         data, data_tracker, training_cps, training_cps_aval = self.prepare_data(
             all_stats, features_to_use, monetary_features
         )
+
         preprocessor = self.build_preprocessor(data, categorical_features, quantitative_features)
+
         data, models_tester, train_init_date, train_end_date = self.create_models_tester(data, all_stats)
+
         y_pred_monetary_test = self.train_and_evaluate(
             models_tester, preprocessor, all_stats, all_features, features_to_use,
             training_cps, training_cps_aval, train_init_date, train_end_date, str_date_and_time
         )
+
         x_test_transformed_df = self.export_statistics_and_predictions(
             all_stats, data_tracker, models_tester, preprocessor, y_pred_monetary_test
         )
