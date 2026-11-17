@@ -12,14 +12,14 @@ from mlp.model_generator_functions import ModelGenerator
 def main():
 
     configurations = [
-        # "NV_Agt",
-        # "RNV_Agt",
-        # "NV_CC",
+        "NV_Agt",
+        "RNV_Agt",
+        "NV_CC",
         "RNV_CC",
-        # "NV_Agt_CS",
-        # "RNV_Agt_CS",
-        # "NV_CC_CS",
-        # "RNV_CC_CS"
+        "NV_Agt_CS",
+        "RNV_Agt_CS",
+        "NV_CC_CS",
+        "RNV_CC_CS"
         ]
 
     feature_engineering = "standardization"
@@ -33,6 +33,7 @@ def main():
     # Fecha máxima de los datos para el aprendizaje y evaluación
     min_date =  pd.to_datetime('2023-01-01')
     max_date =  pd.to_datetime('2026-05-31')
+    
     source_file_name = 'Data Set Cashia Entrenamiento.csv'
     configuration_file_name = "CashIA_ConfFile.xlsx"
     stats_file_name = "Statistics.xlsx"
