@@ -194,41 +194,47 @@ class ModelsStats:
         print("Model rejection rate", "{:,.1f}%".format(stats.fields['Rejection rate']*100))
         print("False negative rate", "{:,.1f}%".format(stats.fields['False negative rate']*100))
 
-
-
     def display_confusion_matrix(
         self,
         cm,
         show=True,
         filename=None,
     ):
-        """Muestra la matriz de confusión obtenida por el entrenamiento
-        de un modelo.
+        """Muestra o guarda la matriz de confusión de un modelo.
 
         Args:
             cm (array-like): Matriz de confusión.
+            show (bool, optional): Si es True muestra la figura.
+                Por defecto True.
             filename (str, optional): Nombre del archivo donde se guardará
-                la imagen (por ejemplo 'confusion_matrix.png').
-                Si es None no se guarda.
-            show (bool, optional): Si es True muestra la figura en pantalla.
-                Por defecto es True.
+                la imagen. Si es None no se guarda.
 
         Returns:
-            array-like: La matriz de confusión recibida.
+            array-like: Matriz de confusión recibida.
         """
 
         disp = ConfusionMatrixDisplay(cm)
         disp.plot()
-        fig = plt.gcf()
+        fig = disp.figure_
 
         if filename is not None:
-            output_path = Path("./figures") / filename
-            fig.savefig(output_path, dpi=300, bbox_inches="tight")
+            figures_dir = Path(__file__).resolve().parent / "figures"
+            figures_dir.mkdir(parents=True, exist_ok=True)
+
+            fig.savefig(
+                figures_dir / filename,
+                dpi=300,
+                bbox_inches="tight"
+            )
 
         if show:
             plt.show()
         else:
             plt.close(fig)
+
+        return cm
+
+    
 
 class ModelsTester:
     """Clase que prueba varios modelos de predicción
@@ -495,35 +501,39 @@ def plot_threshold_evolution(
     title,
     xlabel,
     ylabel,
-    filename=None
+    filename=None,
+    show=True
 ):
-    """Dibuja la gráfica de la evolución del umbral con respecto a una
-    segunda variable asociada al umbral.
+    """Dibuja la evolución del umbral respecto a una variable.
 
     Args:
         threshold_list (list): Lista con los umbrales.
-        evol_list (list): Lista con la evolución de la variable asociada
-            al umbral.
+        evol_list (list): Evolución de la variable asociada.
         title (str): Título de la gráfica.
         xlabel (str): Etiqueta del eje X.
         ylabel (str): Etiqueta del eje Y.
-        filename (str, optional): Nombre del archivo donde se guardará
-            la imagen (por ejemplo 'grafica.png'). Si es None no se guarda.
+        filename (str, optional): Nombre del archivo para guardar la gráfica.
+        show (bool, optional): Si es True muestra la gráfica.
+            Por defecto True.
     """
     fig, ax = plt.subplots(figsize=(6, 4))
 
     ax.plot(threshold_list, evol_list, color="#0A7BBB")
     ax.set_title(title)
-    ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-
-    # Guarda la figura si se especificó un archivo
-  
+    ax.set_xlabel(xlabel)
 
     if filename is not None:
-        output_path = Path("./figures") / filename
-        fig.savefig(output_path, dpi=300, bbox_inches="tight")
+        figures_dir = Path(__file__).resolve().parent / "figures"
+        figures_dir.mkdir(parents=True, exist_ok=True)
 
-    plt.show()
+        fig.savefig(
+            figures_dir / filename,
+            dpi=300,
+            bbox_inches="tight"
+        )
 
-
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
