@@ -2,9 +2,9 @@
 Programa principal para la preparación de datos de CashIA.
 """
 
-import mlp.promok_models_config as pkconfig
-from mlp.data_preparation_functions import DataPreparation
-from mlp.config import source_file_name, configuration_file_name
+import cashia_mlp.promok_models_config as pkconfig
+from cashia_mlp.data_preparation_functions import DataPreparation
+from cashia_mlp.config import source_file_name, configuration_file_name
 
 def main():
     """Ejecuta el proceso de preparación de datos."""

@@ -6,9 +6,9 @@ import pandas as pd
 # Mantiene el ajuste de sys.path del script original.
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "..")))
 
-from mlp.model_to_test import *
-from mlp.model_generator_functions import ModelGenerator
-from mlp.config import source_file_name, configuration_file_name
+from cashia_mlp.model_to_test import *
+from cashia_mlp.model_generator_functions import ModelGenerator
+from cashia_mlp.config import source_file_name, configuration_file_name
 
 def main():
 

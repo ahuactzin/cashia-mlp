@@ -16,14 +16,14 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler, OrdinalEncoder
 from sklearn.compose import make_column_transformer
 
-import mlp.promok_functions as pk
-from mlp.dataframe_tracker import DataFrameEvolutionTracker
+import cashia_mlp.promok_functions as pk
+from cashia_mlp.dataframe_tracker import DataFrameEvolutionTracker
 
 import cashia_core.data_channel.promok_datapipe_func as pkdp
 import cashia_core.data_channel.pm_datapipeline as pmdp
 from cashia_core.common_tools.storage import get_storage
 
-from mlp.config import get_mlp_resource_key
+from cashia_mlp.config import get_mlp_resource_key
 
 from pathlib import Path
 import os

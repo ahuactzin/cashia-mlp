@@ -1,6 +1,6 @@
 import joblib
 import pickle
-from mlp.config import get_mlp_resource_key
+from cashia_mlp.config import get_mlp_resource_key
 
 class ModelToTest:
     def __init__(self, name, parameters, is_probabilistic = True, model_conf =""):
