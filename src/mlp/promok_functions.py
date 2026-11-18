@@ -15,7 +15,7 @@ from sklearn.metrics import confusion_matrix, precision_score, recall_score
 from sklearn.metrics import f1_score, accuracy_score, roc_auc_score, ConfusionMatrixDisplay
 
 from cashia_core.common_tools.storage import get_storage
-from mlp.model_generator_config import get_mlp_resource_key
+from mlp.config import get_mlp_resource_key
 
 
 #--- Models labraries
