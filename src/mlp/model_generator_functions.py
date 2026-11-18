@@ -92,12 +92,11 @@ class ModelGenerator:
         
         print('Data file: ', processed_data_file_name)
 
-
         data = get_storage().read_csv(
             f"{get_mlp_resource_key('processed_data_dir')}{processed_data_file_name}",
             parse_dates=["Fecha Inicial"],
-            index_col=0,
-            dayfirst=True
+            date_format="%Y-%m-%d",
+            index_col=0
             )
 
         # Convertir a entero el índice
