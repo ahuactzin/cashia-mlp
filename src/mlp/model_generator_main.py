@@ -6,8 +6,9 @@ import pandas as pd
 # Mantiene el ajuste de sys.path del script original.
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), "..")))
 
-from cashia_model.promok_model import *
+from mlp.model_to_test import *
 from mlp.model_generator_functions import ModelGenerator
+from mlp.config import source_file_name, configuration_file_name
 
 def main():
 
@@ -34,10 +35,7 @@ def main():
     min_date =  pd.to_datetime('2023-01-01')
     max_date =  pd.to_datetime('2026-05-31')
     
-    source_file_name = 'Data Set Cashia Entrenamiento.csv'
-    configuration_file_name = "CashIA_ConfFile.xlsx"
     stats_file_name = "Statistics.xlsx"
-    test_stats_file_name = "StatisticsTest.xlsx"
     test_size = 0.2
 
 

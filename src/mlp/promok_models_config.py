@@ -1,6 +1,6 @@
 
 import pandas as pd
-from cashia_model.promok_model import *
+from mlp.model_to_test import *
 import os
 
 feature_engineering = "standardization"
