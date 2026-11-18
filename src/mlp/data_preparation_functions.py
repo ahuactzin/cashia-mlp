@@ -22,7 +22,7 @@ from cashia_core.common_tools.configuration.resource_keys import get_resource_pa
 from cashia_core.common_tools.storage import get_storage
 
 from mlp.dataframe_tracker import DataFrameEvolutionTracker
-from mlp.model_generator_config import get_mlp_resource_key
+from mlp.config import get_mlp_resource_key
 
 
 BASE_DIR = Path(__file__).resolve().parent
