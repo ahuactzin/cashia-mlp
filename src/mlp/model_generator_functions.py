@@ -23,7 +23,7 @@ import cashia_core.data_channel.promok_datapipe_func as pkdp
 import cashia_core.data_channel.pm_datapipeline as pmdp
 from cashia_core.common_tools.storage import get_storage
 
-from mlp.model_generator_config import get_mlp_resource_key
+from mlp.config import get_mlp_resource_key
 
 from pathlib import Path
 import os
@@ -58,7 +58,8 @@ class ModelGenerator:
         all_features = get_storage().read_excel(
             f"{get_mlp_resource_key('conf_dir')}{self.configuration_file_name}",
             index_col=0
-)
+            )
+        
         features = all_features[all_features[self.conf_column] == 'Sí']
 
         features_to_use = set(features['Característica'].values)
